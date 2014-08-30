@@ -40,12 +40,16 @@ Assuming the server is running in its default settings.
 
 ### Connecting from clients (i.e. Browsers)
 
-    ws = new WebSocket('ws://127.0.0.1:8086');
-    ws.onmessage = function(e) {
-      var message = e.data;
-      
-      // do something with the message here
-    }
+```javascript
+
+ws = new WebSocket('ws://127.0.0.1:8086');
+ws.onmessage = function(e) {
+  var message = e.data;
+
+  // do something with the message here
+}
+
+```
 
 
 ### Sending a notification
@@ -57,14 +61,16 @@ Notifications are send by making a `POST` request to `lightpush`. There are two 
 
 E.g. (Python code):
 
-    import requests
-  
-    headers = {
-      "Authorization" : "29e03fe7-9e8f-42b2-a9ac-2c9519bdf0b1",
-      "Lightpush-Message": "refresh"
-    }
-    
-    response = requests.post("127.0.0.1:8086", headers=headers)
-    assert response.status_code == 202
-    
 
+```python
+import requests
+
+headers = {
+  "Authorization" : "29e03fe7-9e8f-42b2-a9ac-2c9519bdf0b1",
+  "Lightpush-Message": "refresh"
+}
+
+response = requests.post("127.0.0.1:8086", headers=headers)
+assert response.status_code == 202
+    
+```
