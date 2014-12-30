@@ -1,40 +1,56 @@
-import re
+import base64
+import hashlib
+from http_parser.pyparser import HttpParser
+
+
+WEBSOCKET_MAGIC_STRING = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 
 class HttpRequest(object):
-    _request_line_pattern = r"^(?P<method>GET|POST|OPTIONS) (?P<request_uri>[^\s]+) (?P<http_version>HTTP/1.1)$"
-    _header_pattern = r"^(?P<header_name>[^:]+):(?P<header_value>.+)$"
+    def __init__(self):
+        self.parser = HttpParser()
+        self.body = ''
+        self.body_chunks = []
+        self.is_complete = False
 
-    def __init__(self, req):
-        self.is_valid = False
-        self.headers = {}
-        _lines = req.split("\r\n")
-        _match = re.match(self._request_line_pattern, _lines[0])
-        _lines = _lines[1:-2]
-        if _match is None:
+    def feed(self, data):
+        if self.is_complete:
             return
-        _gdict = _match.groupdict()
-        self.method = _gdict["method"]
-        self.request_uri = _gdict["request_uri"]
-        self.http_version = _gdict["http_version"]
-        for line in _lines:
-            _match = re.match(self._header_pattern, line)
-            if _match is None:
-                return
-            _gdict = _match.groupdict()
-            self.headers[_gdict["header_name"]] = _gdict["header_value"].strip()
-        self.is_valid = True
+
+        nrecved = len(data)
+        self.parser.execute(data, nrecved)
+
+        if not self.parser.is_headers_complete():
+            return
+
+        if self.parser.is_partial_body():
+            self.body_chunks.append(self.parser.recv_body())
+
+        if (self.parser.get_method() != "POST"
+            or self.parser.is_message_complete()):
+            self.body = b''.join(self.body_chunks)
+            self.is_complete = True
+
+    def is_websocket(self):
+        # TODO: More elaborate check
+        return 'websocket' in self.parser.get_headers().get('upgrade', '')
 
 
-class HttpResponse(object):
-    def __init__(self, status=200):
-        self.status = status
-        self.headers = {}
+def websocket_response(request):
+    websocket_key = request.parser.get_headers().get('Sec-WebSocket-Key')
+    websocket_key = bytes(websocket_key, 'utf-8')
+    sha = hashlib.sha1(websocket_key+WEBSOCKET_MAGIC_STRING)
+    accept = base64.b64encode(sha.digest())
+    return b'\r\n'.join([
+        b'HTTP/1.1 101 Switching Protocols',
+        b'Upgrade: websocket',
+        b'Connection: Upgrade',
+        b'Sec-WebSocket-Accept: ' + accept,
+        b'',
+        b''
+    ])
 
-    def __str__(self):
-        header = [
-            'HTTP/1.1 {0} {1}'.format(self.status, messages[self.status])
-        ]
-        for key, value in self.headers.iteritems():
-            header.append(key + ': ' + value)
-        return '\r\n'.join(header)
+
+def http_response(request):
+    assert request is not None
+    return b"HTTP Response"
