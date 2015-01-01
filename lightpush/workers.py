@@ -67,11 +67,16 @@ class Handshaker(Worker):
         if not self.request.is_complete:
             return
 
-        if self.request.is_websocket():
-            self.response = websocket_response(self.request)
-        else:
-            self.server.broadcast(self.request.body)
-            self.response = http_response(self.request)
+        try:
+            if self.request.is_websocket():
+                self.response = websocket_response(self.request)
+            elif self.request.token() == self.server.key:
+                self.server.broadcast(self.request.body)
+                self.response = http_response(self.request, 200)
+            else:
+                self.response = http_response(self.request, 401)
+        except Exception as e: # TODO: Better error handling
+            raise e
 
         self.is_request_received = True
 

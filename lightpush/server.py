@@ -9,7 +9,8 @@ class Server(object):
     reader_mask = select.POLLIN | select.POLLPRI
     writer_mask = select.POLLOUT
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, key):
+        self.key = key
         self.poller = select.poll()
         self.workers = {}
         self.clients = []

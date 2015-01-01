@@ -27,12 +27,13 @@ def start(config):
     settings = config['General']
     host = settings['host']
     port = int(settings['port'])
+    key = settings['key']
     pidfile = settings['pidfile']
     logfile = settings['logfile']
     logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
     daemonize(pidfile, logfile)
-    Server(host, port).main()
+    Server(host, port, key).main()
 
 
 def stop(config):

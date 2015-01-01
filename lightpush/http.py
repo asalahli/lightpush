@@ -31,6 +31,13 @@ class HttpRequest(object):
             self.body = b''.join(self.body_chunks)
             self.is_complete = True
 
+    def token(self):
+        auth_header = self.parser.get_headers().get('authorization', None)
+        if auth_header is not None:
+            return auth_header.split()[1].strip()
+        else:
+            return None
+
     def is_websocket(self):
         # TODO: More elaborate check
         return 'websocket' in self.parser.get_headers().get('upgrade', '')
@@ -51,6 +58,6 @@ def websocket_response(request):
     ])
 
 
-def http_response(request):
+def http_response(request, status=200):
     assert request is not None
     return b"HTTP Response"
