@@ -1,3 +1,4 @@
+import collections
 import select
 
 from lightpush.workers import Listener
@@ -13,7 +14,7 @@ class Server(object):
         self.key = key
         self.poller = select.poll()
         self.workers = {}
-        self.clients = []
+        self.clients = collections.defaultdict(list)
 
         self.listener = Listener(self, host, port)
         self.add(self.listener)
@@ -31,20 +32,20 @@ class Server(object):
         self.workers[worker.fileno()] = worker
 
         if worker.is_client:
-            self.clients.append(worker)
+            self.clients[worker.channel].append(worker)
 
     def remove(self, worker):
         self.poller.unregister(worker)
         self.workers.pop(worker.fileno())
 
         if worker.is_client:
-            self.clients.remove(worker)
+            self.clients[worker.channel].remove(worker)
 
-    def broadcast(self, message):
+    def broadcast(self, channel, message):
         print("Broadcasting: %s" % message)
         packet = create_packet(message)
 
-        for client in self.clients:
+        for client in self.clients[channel]:
             client.enqueue(packet)
 
     def main(self):

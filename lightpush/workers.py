@@ -71,7 +71,8 @@ class Handshaker(Worker):
             if self.request.is_websocket():
                 self.response = websocket_response(self.request)
             elif self.request.token() == self.server.key:
-                self.server.broadcast(self.request.body)
+                channel = self.request.parser.get_path()
+                self.server.broadcast(channel, self.request.body)
                 self.response = http_response(self.request, 200)
             else:
                 self.response = http_response(self.request, 401)
@@ -91,7 +92,9 @@ class Handshaker(Worker):
             self.server.remove(self)
 
             if self.request.is_websocket():
-                self.server.add(Client(self.server, self.sock, self.addr))
+                channel = self.request.parser.get_path()
+                client = Client(self.server, self.sock, self.addr, channel)
+                self.server.add(client)
             else:
                 self.sock.close()
 
@@ -100,10 +103,11 @@ class Client(Worker):
     is_writer = True
     is_client = True
 
-    def __init__(self, server, sock, addr):
+    def __init__(self, server, sock, addr, channel):
         self.server = server
         self.sock = sock
         self.addr = addr
+        self.channel = channel
 
         self.buffer = None
         self.queue = collections.deque([])
